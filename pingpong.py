@@ -1,69 +1,95 @@
+import pygame
+import sys
 import random
 
-def user_hit():
-    input("Press Enter to hit the ball.")
+# Initialize Pygame
+pygame.init()
 
-def ai_hit():
-    print("AI is hitting the ball...")
+# Constants
+WIDTH, HEIGHT = 1280, 720
+PADDLE_WIDTH, PADDLE_HEIGHT = 10, 100
+BALL_SIZE = 20
+PLAYER_SPEED = 7
+OPPONENT_SPEED = 6
+BALL_SPEED = 7
+FONT_SIZE = WIDTH // 20
 
-def user_serve():
-    input("Press Enter to serve.")
+# Setup display
+SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Pong!")
 
-def ai_serve():
-    print("AI is serving...")
+# Fonts
+FONT = pygame.font.SysFont("Consolas", FONT_SIZE)
 
-def user_wins_point():
-    print("User wins the point!")
+# Clock
+CLOCK = pygame.time.Clock()
 
-def ai_wins_point():
-    print("AI wins the point!")
+# Player setup
+player = pygame.Rect(WIDTH - 20, HEIGHT // 2 - PADDLE_HEIGHT // 2, PADDLE_WIDTH, PADDLE_HEIGHT)
+opponent = pygame.Rect(10, HEIGHT // 2 - PADDLE_HEIGHT // 2, PADDLE_WIDTH, PADDLE_HEIGHT)
 
-def draw():
-    print("It's a draw!")
+# Ball setup
+ball = pygame.Rect(WIDTH // 2 - BALL_SIZE // 2, HEIGHT // 2 - BALL_SIZE // 2, BALL_SIZE, BALL_SIZE)
+ball_dx, ball_dy = random.choice([BALL_SPEED, -BALL_SPEED]), random.choice([BALL_SPEED, -BALL_SPEED])
 
-def play_ping_pong():
-    user_score = 0
-    ai_score = 0
+# Scores
+player_score, opponent_score = 0, 0
 
-    while True:
-        user_serve()
-        ai_hit()
-        if random.choice([True, False]):
-            user_wins_point()
-            user_score += 1
-        else:
-            ai_wins_point()
-            ai_score += 1
+# Game loop
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
 
-        print("Score: User -", user_score, ", AI -", ai_score)
+    # Player movement
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_UP] and player.top > 0:
+        player.y -= PLAYER_SPEED
+    if keys[pygame.K_DOWN] and player.bottom < HEIGHT:
+        player.y += PLAYER_SPEED
 
-        if user_score >= 21 and user_score - ai_score >= 2:
-            print("User wins the match!")
-            break
-        elif ai_score >= 21 and ai_score - user_score >= 2:
-            print("AI wins the match!")
-            break
+    # Opponent (enhanced AI) movement
+    if opponent.centery < ball.centery and opponent.bottom < HEIGHT:
+        opponent.y += OPPONENT_SPEED
+    if opponent.centery > ball.centery and opponent.top > 0:
+        opponent.y -= OPPONENT_SPEED
 
-        ai_serve()
-        user_hit()
-        if random.choice([True, False]):
-            ai_wins_point()
-            ai_score += 1
-        else:
-            user_wins_point()
-            user_score += 1
+    # Ball movement
+    ball.x += ball_dx
+    ball.y += ball_dy
 
-        print("Score: User -", user_score, ", AI -", ai_score)
+    # Ball collision with walls
+    if ball.top <= 0 or ball.bottom >= HEIGHT:
+        ball_dy = -ball_dy
 
-        if user_score >= 21 and user_score - ai_score >= 2:
-            print("User wins the match!")
-            break
-        elif ai_score >= 21 and ai_score - user_score >= 2:
-            print("AI wins the match!")
-            break
+    # Ball collision with paddles
+    if ball.colliderect(player) or ball.colliderect(opponent):
+        ball_dx = -ball_dx
 
-        if user_score == 20 and ai_score == 20:
-            print("Deuce! Continuing...")
-            continue
+    # Ball out of bounds (scoring)
+    if ball.left <= 0:
+        player_score += 1
+        ball.center = (WIDTH // 2, HEIGHT // 2)
+        ball_dx, ball_dy = random.choice([BALL_SPEED, -BALL_SPEED]), random.choice([BALL_SPEED, -BALL_SPEED])
+    if ball.right >= WIDTH:
+        opponent_score += 1
+        ball.center = (WIDTH // 2, HEIGHT // 2)
+        ball_dx, ball_dy = random.choice([BALL_SPEED, -BALL_SPEED]), random.choice([BALL_SPEED, -BALL_SPEED])
 
-play_ping_pong()
+    # Drawing everything
+    SCREEN.fill("black")
+    pygame.draw.rect(SCREEN, "white", player)
+    pygame.draw.rect(SCREEN, "white", opponent)
+    pygame.draw.ellipse(SCREEN, "white", ball)
+    pygame.draw.aaline(SCREEN, "white", (WIDTH // 2, 0), (WIDTH // 2, HEIGHT))
+
+    # Draw scores
+    player_text = FONT.render(str(player_score), True, "white")
+    opponent_text = FONT.render(str(opponent_score), True, "white")
+    SCREEN.blit(player_text, (WIDTH // 2 + 20, 20))
+    SCREEN.blit(opponent_text, (WIDTH // 2 - 40, 20))
+
+    # Update the display
+    pygame.display.flip()
+    CLOCK.tick(60)
